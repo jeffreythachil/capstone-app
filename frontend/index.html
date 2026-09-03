@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Management System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Document Management System</h1>
+
+        <section class="form-section">
+            <h2>Add Document</h2>
+
+            <input
+                type="text"
+                id="name"
+                placeholder="Document name"
+            >
+
+            <input
+                type="text"
+                id="category"
+                placeholder="Category"
+            >
+
+            <textarea
+                id="description"
+                placeholder="Description"
+            ></textarea>
+
+            <input
+                type="file"
+                id="file"
+            >
+
+            <button onclick="addDocument()">Add Document</button>
+        </section>
+
+
+        <section class="documents-section">
+            <h2>Documents</h2>
+
+            <div id="documents">
+                Loading...
+            </div>
+        </section>
+
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
