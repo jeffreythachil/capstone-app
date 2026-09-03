@@ -17,27 +17,82 @@ env:
   ECR_REPOSITORY: capstone-app
 
 jobs:
+
   test:
     name: Test
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: appdb
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -prootpassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: root
+      DB_PASSWORD: rootpassword
+      DB_NAME: appdb
+
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install dependencies
         run: |
           pip install -r backend/requirements.txt
-          pip install pytest
+
+      - name: Initialize test database
+        run: |
+          python - <<'PY'
+          import mysql.connector
+
+          connection = mysql.connector.connect(
+              host="127.0.0.1",
+              user="root",
+              password="rootpassword",
+              database="appdb"
+          )
+
+          cursor = connection.cursor()
+
+          cursor.execute("""
+              CREATE TABLE IF NOT EXISTS documents (
+                  id INT AUTO_INCREMENT PRIMARY KEY,
+                  name VARCHAR(255) NOT NULL,
+                  category VARCHAR(255),
+                  description TEXT,
+                  file_name VARCHAR(255),
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              )
+          """)
+
+          connection.commit()
+
+          cursor.close()
+          connection.close()
+
+          print("Test database initialized successfully.")
+          PY
 
       - name: Run tests
         run: |
           pytest -v
+
 
   build-and-push:
     name: Build and Push to ECR
@@ -45,6 +100,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -78,7 +134,7 @@ jobs:
           docker push \
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
 
-      - name: Summary
+      - name: Show image
         run: |
-          echo "Image pushed successfully:"
+          echo "Image pushed:"
           echo "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
