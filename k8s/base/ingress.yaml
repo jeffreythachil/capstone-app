@@ -8,6 +8,7 @@ metadata:
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
     alb.ingress.kubernetes.io/healthcheck-path: /health
     alb.ingress.kubernetes.io/success-codes: "200"
+    alb.ingress.kubernetes.io/subnets: subnet-0eb1e368ceab3979e,subnet-037aba138f0096434
 spec:
   ingressClassName: alb
   rules:
