@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 import mysql.connector
@@ -21,6 +21,21 @@ def get_db_connection():
         password=os.getenv("DB_PASSWORD"),
         database=os.getenv("DB_NAME")
     )
+
+
+@app.route("/", methods=["GET"])
+def index():
+    return send_from_directory("../frontend", "index.html")
+
+
+@app.route("/style.css", methods=["GET"])
+def style():
+    return send_from_directory("../frontend", "style.css")
+
+
+@app.route("/script.js", methods=["GET"])
+def script():
+    return send_from_directory("../frontend", "script.js")
 
 
 @app.route("/health", methods=["GET"])

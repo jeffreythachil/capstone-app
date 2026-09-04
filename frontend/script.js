@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api/documents";
+const API_URL = "/api/documents";
 
 
 async function loadDocuments() {

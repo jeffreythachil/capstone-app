@@ -6,9 +6,12 @@ COPY backend/requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend/ .
+COPY backend/ /app/backend/
+COPY frontend/ /app/frontend/
 
-RUN mkdir -p uploads
+RUN mkdir -p /app/backend/uploads
+
+WORKDIR /app/backend
 
 EXPOSE 5000
 
