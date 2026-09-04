@@ -9,7 +9,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 env:
@@ -139,3 +139,18 @@ jobs:
         run: |
           echo "Image pushed:"
           echo "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
+
+      - name: Update staging image tag
+        run: |
+          sed -i "s/newTag: .*/newTag: ${{ github.sha }}/" k8s/overlays/staging/kustomization.yaml
+
+      - name: Commit and push staging manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add k8s/overlays/staging/kustomization.yaml
+
+          git commit -m "Update staging image to ${{ github.sha }} [skip ci]" || exit 0
+
+          git push origin HEAD:main
