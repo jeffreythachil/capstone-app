@@ -5,6 +5,6 @@ resources:
   - ../../base
 
 images:
-  - name: 163265929593.dkr.ecr.ap-south-1.amazonaws.com/capstone-app
-    newName: 163265929593.dkr.ecr.ap-south-1.amazonaws.com/capstone-app
-    newTag: 189f453aff77f06ca4ddb04ea501cfa425927579
+  - name: 135188036963.dkr.ecr.ap-south-1.amazonaws.com/capstone-app
+    newName: 135188036963.dkr.ecr.ap-south-1.amazonaws.com/capstone-app
+    newTag: 77980628dbea67b26c40bb1a6f47717ac50582ec
