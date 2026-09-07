@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
+import boto3
+import json
 import mysql.connector
 import os
 
@@ -10,16 +12,75 @@ app = Flask(__name__)
 CORS(app)
 
 UPLOAD_FOLDER = "uploads"
-
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+AWS_REGION = os.getenv("AWS_REGION", "ap-south-1")
+DB_SECRET_NAME = os.getenv("DB_SECRET_NAME", "capstone/database")
+
+
+def get_database_credentials():
+    """
+    Retrieve database credentials from AWS Secrets Manager.
+
+    For local development and CI tests, DB_USER and DB_PASSWORD
+    environment variables can still be supplied directly.
+    In EKS production, the application retrieves them from
+    AWS Secrets Manager using EKS Pod Identity.
+    """
+
+    db_user = os.getenv("DB_USER")
+    db_password = os.getenv("DB_PASSWORD")
+
+    if db_user and db_password:
+        return db_user, db_password
+
+    client = boto3.client(
+        "secretsmanager",
+        region_name=AWS_REGION
+    )
+
+    response = client.get_secret_value(
+        SecretId=DB_SECRET_NAME
+    )
+
+    secret_string = response.get("SecretString")
+
+    if not secret_string:
+        raise RuntimeError(
+            "AWS Secrets Manager secret does not contain SecretString"
+        )
+
+    secret = json.loads(secret_string)
+
+    db_user = secret.get("username")
+    db_password = secret.get("password")
+
+    if not db_user or not db_password:
+        raise RuntimeError(
+            "AWS Secrets Manager secret must contain "
+            "'username' and 'password'"
+        )
+
+    return db_user, db_password
 
 
 def get_db_connection():
+    db_user, db_password = get_database_credentials()
+
+    db_host = os.getenv("DB_HOST")
+    db_name = os.getenv("DB_NAME")
+
+    if not db_host:
+        raise RuntimeError("DB_HOST environment variable is required")
+
+    if not db_name:
+        raise RuntimeError("DB_NAME environment variable is required")
+
     return mysql.connector.connect(
-        host=os.getenv("DB_HOST"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME")
+        host=db_host,
+        user=db_user,
+        password=db_password,
+        database=db_name
     )
 
 
