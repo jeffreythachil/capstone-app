@@ -30,29 +30,17 @@ spec:
             - containerPort: 5000
 
           env:
+            - name: AWS_REGION
+              value: "ap-south-1"
+
+            - name: DB_SECRET_NAME
+              value: "capstone/database"
+
             - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: database-secret
-                  key: DB_HOST
-
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: database-secret
-                  key: DB_USER
-
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: database-secret
-                  key: DB_PASSWORD
+              value: "capstone-db.cr4kuc4cwmyd.ap-south-1.rds.amazonaws.com"
 
             - name: DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: database-secret
-                  key: DB_NAME
+              value: "appdb"
 
           resources:
             requests:
@@ -76,16 +64,3 @@ spec:
               port: 5000
             initialDelaySeconds: 30
             periodSeconds: 20
-
-          volumeMounts:
-            - name: secrets-store
-              mountPath: /mnt/secrets-store
-              readOnly: true
-
-      volumes:
-        - name: secrets-store
-          csi:
-            driver: secrets-store.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: capstone-database
