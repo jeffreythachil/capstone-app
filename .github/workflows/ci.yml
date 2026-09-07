@@ -100,10 +100,16 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
+    concurrency:
+      group: staging-gitops-deployment
+      cancel-in-progress: true
+
     steps:
 
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
@@ -140,6 +146,11 @@ jobs:
           echo "Image pushed:"
           echo "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
 
+      - name: Synchronize with latest main
+        run: |
+          git fetch origin main
+          git rebase origin/main
+
       - name: Update staging image tag
         run: |
           sed -i "s/newTag: .*/newTag: ${{ github.sha }}/" k8s/overlays/staging/kustomization.yaml
@@ -153,4 +164,16 @@ jobs:
 
           git commit -m "Update staging image to ${{ github.sha }} [skip ci]" || exit 0
 
-          git push origin HEAD:main
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "Staging manifest pushed successfully."
+              exit 0
+            fi
+
+            echo "Push failed. Synchronizing with latest main and retrying..."
+            git fetch origin main
+            git rebase origin/main
+          done
+
+          echo "Failed to push staging manifest after 3 attempts."
+          exit 1
