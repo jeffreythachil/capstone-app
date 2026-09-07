@@ -7,4 +7,4 @@ resources:
 images:
   - name: 135188036963.dkr.ecr.ap-south-1.amazonaws.com/capstone-app
     newName: 135188036963.dkr.ecr.ap-south-1.amazonaws.com/capstone-app
-    newTag: b07a82adb4738fa3e0a9695b715608e1e1d520ea
+    newTag: cf4e14b5d16033961617499aa8057e5f169cd026
