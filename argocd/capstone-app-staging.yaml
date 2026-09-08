@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: capstone-app-production
+  name: capstone-app-staging
   namespace: argocd
 spec:
   project: default
@@ -9,8 +9,13 @@ spec:
   source:
     repoURL: https://github.com/jeffreythachil/capstone-app.git
     targetRevision: main
-    path: k8s/overlays/production
+    path: k8s/overlays/staging
 
   destination:
     server: https://kubernetes.default.svc
     namespace: default
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
