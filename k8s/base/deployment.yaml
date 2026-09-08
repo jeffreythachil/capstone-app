@@ -21,6 +21,28 @@ spec:
     spec:
       serviceAccountName: capstone-app
 
+      initContainers:
+        - name: database-init
+
+          image: 135188036963.dkr.ecr.ap-south-1.amazonaws.com/capstone-app:PLACEHOLDER
+
+          command:
+            - python
+            - init_db.py
+
+          env:
+            - name: AWS_REGION
+              value: "ap-south-1"
+
+            - name: DB_SECRET_NAME
+              value: "capstone/database"
+
+            - name: DB_HOST
+              value: "capstone-db.cr4kuc4cwmyd.ap-south-1.rds.amazonaws.com"
+
+            - name: DB_NAME
+              value: "appdb"
+
       containers:
         - name: capstone-app
 
