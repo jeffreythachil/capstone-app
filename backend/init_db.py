@@ -1,27 +1,45 @@
+import time
+
 from app import get_db_connection
 
 
 def initialize_database():
-    connection = get_db_connection()
-    cursor = connection.cursor()
+    max_attempts = 10
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS documents (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            category VARCHAR(255),
-            description TEXT,
-            file_name VARCHAR(255),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+    for attempt in range(1, max_attempts + 1):
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor()
 
-    connection.commit()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS documents (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    category VARCHAR(255),
+                    description TEXT,
+                    file_name VARCHAR(255),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
 
-    cursor.close()
-    connection.close()
+            connection.commit()
 
-    print("Database initialization completed successfully.")
+            cursor.close()
+            connection.close()
+
+            print("Database initialization completed successfully.")
+            return
+
+        except Exception as error:
+            print(
+                f"Database initialization attempt "
+                f"{attempt}/{max_attempts} failed: {error}"
+            )
+
+            if attempt == max_attempts:
+                raise
+
+            time.sleep(10)
 
 
 if __name__ == "__main__":
