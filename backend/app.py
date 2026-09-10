@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
+from werkzeug.utils import secure_filename
 import boto3
 import json
 import mysql.connector
@@ -16,6 +17,14 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 AWS_REGION = os.getenv("AWS_REGION", "ap-south-1")
 DB_SECRET_NAME = os.getenv("DB_SECRET_NAME", "capstone/database")
+
+S3_BUCKET = os.getenv("S3_BUCKET")
+S3_PREFIX = "documents/"
+
+s3_client = boto3.client(
+    "s3",
+    region_name=AWS_REGION
+)
 
 
 def get_database_credentials():
@@ -143,11 +152,28 @@ def add_document():
             "error": "File is required"
         }), 400
 
-    file_name = file.filename
+    file_name = secure_filename(file.filename)
 
-    file_path = os.path.join(UPLOAD_FOLDER, file_name)
+    if not file_name:
+        return jsonify({
+            "error": "Invalid file name"
+        }), 400
 
-    file.save(file_path)
+    # Store the actual file in S3 when S3_BUCKET is configured.
+    # This is used by staging and production.
+    if S3_BUCKET:
+        s3_key = f"{S3_PREFIX}{file_name}"
+
+        s3_client.upload_fileobj(
+            file,
+            S3_BUCKET,
+            s3_key
+        )
+
+    # Keep local storage available for local development.
+    else:
+        file_path = os.path.join(UPLOAD_FOLDER, file_name)
+        file.save(file_path)
 
     connection = get_db_connection()
     cursor = connection.cursor()
@@ -176,7 +202,41 @@ def add_document():
 def delete_document(document_id):
 
     connection = get_db_connection()
-    cursor = connection.cursor()
+    cursor = connection.cursor(dictionary=True)
+
+    cursor.execute(
+        "SELECT file_name FROM documents WHERE id = %s",
+        (document_id,)
+    )
+
+    document = cursor.fetchone()
+
+    if not document:
+        cursor.close()
+        connection.close()
+
+        return jsonify({
+            "error": "Document not found"
+        }), 404
+
+    file_name = document["file_name"]
+
+    # Delete the actual file from S3.
+    # This generates an S3 ObjectRemoved event.
+    if S3_BUCKET:
+        s3_key = f"{S3_PREFIX}{file_name}"
+
+        s3_client.delete_object(
+            Bucket=S3_BUCKET,
+            Key=s3_key
+        )
+
+    # Delete local file when running locally.
+    else:
+        file_path = os.path.join(UPLOAD_FOLDER, file_name)
+
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
     cursor.execute(
         "DELETE FROM documents WHERE id = %s",
@@ -184,14 +244,6 @@ def delete_document(document_id):
     )
 
     connection.commit()
-
-    if cursor.rowcount == 0:
-        cursor.close()
-        connection.close()
-
-        return jsonify({
-            "error": "Document not found"
-        }), 404
 
     cursor.close()
     connection.close()
@@ -202,6 +254,8 @@ def delete_document(document_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
-#test comment# Pipeline validation
-# Pipeline validation2
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+    )
